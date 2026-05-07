@@ -14,8 +14,9 @@ import os
 from pathlib import Path
 
 import requests
+import sseclient
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
 # Load .env from the repo root (one level up from this file's folder) so the
 # same .env can serve both apps.
@@ -47,6 +48,49 @@ def tickers():
     r = requests.get(f"{UPSTREAM}/api/tickers", headers=_headers(), timeout=10)
     r.raise_for_status()
     return jsonify(r.json())
+
+
+@app.route("/api/stream")
+def stream():
+    """Proxy upstream SSE to the browser.
+
+    Opens a streaming GET against /api/stream upstream (with the API key
+    attached) and re-emits every "tick" event verbatim to the browser. The
+    browser's EventSource therefore never sees the API key.
+    """
+    selected = request.args.getlist("ticker")
+    if not selected:
+        return ("ticker query param required", 400)
+
+    upstream_params = [("ticker", t) for t in selected]
+    upstream_resp = requests.get(
+        f"{UPSTREAM}/api/stream",
+        params=upstream_params,
+        headers=_headers(),
+        stream=True,
+        timeout=(10, None),  # connect timeout 10s, no read timeout
+    )
+
+    def relay():
+        client = sseclient.SSEClient(upstream_resp)
+        try:
+            for ev in client.events():
+                # Re-emit as SSE. EventSource on the browser will dispatch
+                # this with the matching event name (e.g. "tick").
+                if ev.event:
+                    yield f"event: {ev.event}\n"
+                yield f"data: {ev.data}\n\n"
+        finally:
+            upstream_resp.close()
+
+    return Response(
+        stream_with_context(relay()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 if __name__ == "__main__":

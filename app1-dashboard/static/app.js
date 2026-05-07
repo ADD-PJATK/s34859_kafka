@@ -1,15 +1,28 @@
-// App #1 - Realtime Dashboard frontend (scaffold; SSE wiring added in next commit).
+// App #1 - Realtime Dashboard frontend.
 //
-// On load we fetch the ticker list from the Flask proxy and render checkboxes.
-// "Connect" / "Disconnect" buttons are wired up but the EventSource logic is
-// intentionally left for the next commit so the diff stays focused.
+// On load: fetch tickers from /api/tickers and render a checkbox list.
+// On Connect: open EventSource against /api/stream?ticker=... for each
+// selected ticker, update the per-ticker card and the rolling Chart.js chart
+// for every "tick" event. Reconnects with backoff on error.
 
-const tickerListEl = document.getElementById("ticker-list");
-const connectBtn   = document.getElementById("connect");
-const disconnectBtn= document.getElementById("disconnect");
-const selectAllBtn = document.getElementById("select-all");
-const selectNoneBtn= document.getElementById("select-none");
-const statusEl     = document.getElementById("status");
+const tickerListEl  = document.getElementById("ticker-list");
+const cardGridEl    = document.getElementById("card-grid");
+const connectBtn    = document.getElementById("connect");
+const disconnectBtn = document.getElementById("disconnect");
+const selectAllBtn  = document.getElementById("select-all");
+const selectNoneBtn = document.getElementById("select-none");
+const statusEl      = document.getElementById("status");
+
+const HISTORY_LEN = 30;
+
+let evtSource     = null;
+let chart         = null;
+let reconnectMs   = 1000;        // exponential backoff base
+const palette     = ["#38bdf8", "#34d399", "#f87171", "#fbbf24", "#a78bfa",
+                     "#f472b6", "#fb923c", "#22d3ee", "#facc15", "#4ade80"];
+const colorOf     = {};          // ticker -> color
+const history     = {};          // ticker -> [{ts, price}, ...]
+const cards       = {};          // ticker -> {root, priceEl, tsEl, lastPrice}
 
 function setStatus(text, cls) {
   statusEl.textContent = text;
@@ -21,7 +34,6 @@ async function loadTickers() {
     const resp = await fetch("/api/tickers");
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const payload = await resp.json();
-    // Upstream shape: { tickers: ["ACME", "ALFA", ...] } or an array.
     const tickers = Array.isArray(payload) ? payload : (payload.tickers || []);
     renderTickerList(tickers);
     connectBtn.disabled = false;
@@ -47,6 +59,131 @@ function selectedTickers() {
     .map(cb => cb.value);
 }
 
+function ensureCard(ticker) {
+  if (cards[ticker]) return cards[ticker];
+  const root = document.createElement("div");
+  root.className = "card";
+  root.innerHTML = `
+    <div class="ticker">${ticker}</div>
+    <div class="price">--</div>
+    <div class="ts">waiting&hellip;</div>
+  `;
+  cardGridEl.appendChild(root);
+  cards[ticker] = {
+    root,
+    priceEl: root.querySelector(".price"),
+    tsEl:    root.querySelector(".ts"),
+    lastPrice: null,
+  };
+  return cards[ticker];
+}
+
+function ensureChart() {
+  if (chart) return chart;
+  const ctx = document.getElementById("chart").getContext("2d");
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [], datasets: [] },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: "#94a3b8" }, grid: { color: "#334155" } },
+        y: { ticks: { color: "#94a3b8" }, grid: { color: "#334155" } },
+      },
+      plugins: {
+        legend: { labels: { color: "#e2e8f0" } },
+      },
+    },
+  });
+  return chart;
+}
+
+function ensureDataset(ticker) {
+  ensureChart();
+  let ds = chart.data.datasets.find(d => d.label === ticker);
+  if (!ds) {
+    if (!colorOf[ticker]) {
+      colorOf[ticker] = palette[Object.keys(colorOf).length % palette.length];
+    }
+    ds = {
+      label: ticker,
+      data: [],
+      borderColor: colorOf[ticker],
+      backgroundColor: colorOf[ticker] + "33",
+      tension: 0.25,
+      pointRadius: 2,
+    };
+    chart.data.datasets.push(ds);
+  }
+  return ds;
+}
+
+function pushTick(ticker, ts, price) {
+  history[ticker] = history[ticker] || [];
+  history[ticker].push({ ts, price });
+  if (history[ticker].length > HISTORY_LEN) history[ticker].shift();
+
+  // Update card.
+  const card = ensureCard(ticker);
+  if (card.lastPrice !== null) {
+    card.root.classList.toggle("up",   price >= card.lastPrice);
+    card.root.classList.toggle("down", price <  card.lastPrice);
+  }
+  card.priceEl.textContent = price.toFixed(2);
+  card.tsEl.textContent    = new Date(ts).toLocaleTimeString();
+  card.lastPrice = price;
+
+  // Update chart: x-axis is the union of timestamps; align datasets to it.
+  ensureChart();
+  const ds = ensureDataset(ticker);
+  ds.data.push({ x: ts, y: price });
+  if (ds.data.length > HISTORY_LEN) ds.data.shift();
+
+  // Recompute labels as the most recent N timestamps across all datasets.
+  const allTs = new Set();
+  chart.data.datasets.forEach(d => d.data.forEach(p => allTs.add(p.x)));
+  const labels = Array.from(allTs).sort().slice(-HISTORY_LEN);
+  chart.data.labels = labels.map(s => new Date(s).toLocaleTimeString());
+
+  // Re-bind dataset values to labels.
+  chart.data.datasets.forEach(d => {
+    const byTs = Object.fromEntries(d.data.map(p => [p.x, p.y]));
+    d._values = labels.map(t => byTs[t] ?? null);
+    d.data    = d._values.map((v, i) => ({ x: labels[i], y: v }));
+  });
+  chart.update("none");
+}
+
+function openStream(tickers) {
+  if (evtSource) evtSource.close();
+  const qs = tickers.map(t => "ticker=" + encodeURIComponent(t)).join("&");
+  evtSource = new EventSource("/api/stream?" + qs);
+
+  evtSource.addEventListener("open", () => {
+    setStatus("connected (" + tickers.length + " tickers)", "connected");
+    reconnectMs = 1000;
+  });
+
+  evtSource.addEventListener("tick", (e) => {
+    try {
+      const tk = JSON.parse(e.data);
+      // Upstream tick shape: { ticker, ts, price, currency, volume, seq }
+      pushTick(tk.ticker, tk.ts, Number(tk.price));
+    } catch (err) {
+      console.warn("Bad tick payload:", e.data, err);
+    }
+  });
+
+  evtSource.addEventListener("error", () => {
+    // EventSource auto-reconnects; we just surface state and apply backoff
+    // on repeated failures.
+    setStatus("disconnected - retrying in " + (reconnectMs / 1000) + "s", "error");
+    reconnectMs = Math.min(reconnectMs * 2, 10000);
+  });
+}
+
 selectAllBtn.addEventListener("click", () => {
   tickerListEl.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = true);
 });
@@ -57,11 +194,20 @@ selectNoneBtn.addEventListener("click", () => {
 connectBtn.addEventListener("click", () => {
   const sel = selectedTickers();
   if (sel.length === 0) { alert("Pick at least one ticker."); return; }
-  setStatus("connecting (SSE wired up in next commit)", "idle");
+  cardGridEl.innerHTML = "";
+  Object.keys(cards).forEach(k => delete cards[k]);
+  Object.keys(history).forEach(k => delete history[k]);
+  if (chart) { chart.destroy(); chart = null; }
+  openStream(sel);
+  connectBtn.disabled = true;
+  disconnectBtn.disabled = false;
 });
 
 disconnectBtn.addEventListener("click", () => {
+  if (evtSource) { evtSource.close(); evtSource = null; }
   setStatus("idle", "idle");
+  connectBtn.disabled = false;
+  disconnectBtn.disabled = true;
 });
 
 loadTickers();
