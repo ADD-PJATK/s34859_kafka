@@ -21,3 +21,7 @@ Thumbs.db
 # Logs / temp
 *.log
 *.tmp
+
+# Downloaded data files from App #2 (kept out of the repo)
+stocks-*.csv
+stocks-*.json
