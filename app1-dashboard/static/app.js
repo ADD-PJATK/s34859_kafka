@@ -15,7 +15,7 @@ const statusEl      = document.getElementById("status");
 
 const HISTORY_LEN = 30;
 
-let evtSource     = null;
+let evtSources    = [];          // one EventSource per selected ticker
 let chart         = null;
 let reconnectMs   = 1000;        // exponential backoff base
 const palette     = ["#38bdf8", "#34d399", "#f87171", "#fbbf24", "#a78bfa",
@@ -156,31 +156,53 @@ function pushTick(ticker, ts, price) {
   chart.update("none");
 }
 
+function closeAllStreams() {
+  evtSources.forEach(es => { try { es.close(); } catch (_) {} });
+  evtSources = [];
+}
+
 function openStream(tickers) {
-  if (evtSource) evtSource.close();
-  const qs = tickers.map(t => "ticker=" + encodeURIComponent(t)).join("&");
-  evtSource = new EventSource("/api/stream?" + qs);
+  // The upstream /api/stream endpoint streams one ticker per connection
+  // (despite accepting the param, only the first ticker is honored). To get
+  // live updates for several tickers we open one EventSource per ticker;
+  // each one flows through our /api/stream proxy carrying a single ticker.
+  closeAllStreams();
+  const connectedTickers = new Set();
 
-  evtSource.addEventListener("open", () => {
-    setStatus("connected (" + tickers.length + " tickers)", "connected");
-    reconnectMs = 1000;
-  });
+  tickers.forEach(t => {
+    const es = new EventSource("/api/stream?ticker=" + encodeURIComponent(t));
 
-  evtSource.addEventListener("tick", (e) => {
-    try {
-      const tk = JSON.parse(e.data);
-      // Upstream tick shape: { ticker, ts, price, currency, volume, seq }
-      pushTick(tk.ticker, tk.ts, Number(tk.price));
-    } catch (err) {
-      console.warn("Bad tick payload:", e.data, err);
-    }
-  });
+    es.addEventListener("open", () => {
+      connectedTickers.add(t);
+      setStatus(
+        "connected (" + connectedTickers.size + "/" + tickers.length + " tickers)",
+        "connected"
+      );
+      reconnectMs = 1000;
+    });
 
-  evtSource.addEventListener("error", () => {
-    // EventSource auto-reconnects; we just surface state and apply backoff
-    // on repeated failures.
-    setStatus("disconnected - retrying in " + (reconnectMs / 1000) + "s", "error");
-    reconnectMs = Math.min(reconnectMs * 2, 10000);
+    es.addEventListener("tick", (e) => {
+      try {
+        const tk = JSON.parse(e.data);
+        // Upstream tick shape: { ticker, ts, price, currency, volume, seq }
+        pushTick(tk.ticker, tk.ts, Number(tk.price));
+      } catch (err) {
+        console.warn("Bad tick payload:", e.data, err);
+      }
+    });
+
+    es.addEventListener("error", () => {
+      // EventSource auto-reconnects; we just surface state and apply backoff
+      // on repeated failures.
+      connectedTickers.delete(t);
+      setStatus(
+        "disconnected - retrying in " + (reconnectMs / 1000) + "s",
+        "error"
+      );
+      reconnectMs = Math.min(reconnectMs * 2, 10000);
+    });
+
+    evtSources.push(es);
   });
 }
 
@@ -204,7 +226,7 @@ connectBtn.addEventListener("click", () => {
 });
 
 disconnectBtn.addEventListener("click", () => {
-  if (evtSource) { evtSource.close(); evtSource = null; }
+  closeAllStreams();
   setStatus("idle", "idle");
   connectBtn.disabled = false;
   disconnectBtn.disabled = true;
