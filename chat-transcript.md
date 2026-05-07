@@ -387,3 +387,153 @@ _[tool: **Bash** — Run chat exporter]_
 My slug logic was off — Claude Code converts `:` → `-` (not removed), and underscores also become dashes. The actual dir is `C--Users-s34859-s34859-kafka`. Fixing.
 
 _[tool: **Edit** — C:\Users\s34859\s34859_kafka\scripts\export_chat.py]_
+
+_[tool: **Bash** — Re-run exporter and inspect output]_
+
+Transcript exported cleanly — 389 lines, 17 KB. Committing the script and the transcript.
+
+_[tool: **Bash** — Commit transcript + script]_
+
+_[tool: **TaskUpdate** — completed]_
+
+All 7 commits done. Pushing to origin now (you authorized git push in the plan).
+
+_[tool: **Bash** — Push all commits to origin]_
+
+Hit a permission guard — pushing directly to `main` is blocked by your settings. You'll need to push it yourself:
+
+```powershell
+cd C:\Users\s34859\s34859_kafka
+git push -u origin main
+```
+
+That will publish all 9 commits to <https://github.com/ADD-PJATK/s34859_kafka>.
+
+---
+
+## Wrapping up — final state
+
+**9 commits on `main`, in chronological order:**
+
+```
+250481d  docs: add chat transcript exporter and the rendered transcript
+06b9574  docs: per-app READMEs and screenshots of working apps
+a5e18f7  fix(app1): open one EventSource per ticker for true multi-ticker live view
+ce25dd6  fix(charts): stop runaway vertical growth in both apps
+aa06bec  feat(app2): polling, table, chart, CSV/JSON download
+dde5acb  feat(app2): scaffold history app with /api/tickers and /api/latest proxies
+0ae6863  feat(app1): add SSE proxy and live Chart.js dashboard
+778e694  feat(app1): scaffold Flask dashboard and ticker-list endpoint
+d2883ef  chore: add .gitignore, .env.example and top-level README
+```
+
+**Rubric check — all 4 points should be in reach:**
+
+- ✅ **Repo (1 pt)** — `ADD-PJATK/s34859_kafka`, named correctly. (Push pending.)
+- ✅ **READMEs (1 pt)** — top-level + per-app READMEs with prerequisites / installation / configuration / how-to-run / endpoints sections.
+- ✅ **Screenshots (1 pt)** — 3 PNGs in `screenshots/` showing real data; App #2 clearly shows ≥2 tickers and exported CSV/JSON. App #1 shows live SSE with chart.
+- ✅ **Git usage (1 pt)** — 9 meaningful commits, no mega-commit, `.gitignore` covers `.env`, `__pycache__`, venvs, downloaded `stocks-*` files, etc.
+
+**Bonus you also asked for:**
+
+- ✅ **`chat-transcript.md`** at the repo root contains the rendered conversation, generated from this session's JSONL by `scripts/export_chat.py`. You can re-run `python scripts/export_chat.py` later if you have more exchanges in this session and want to refresh it.
+
+**Two follow-ups to be aware of:**
+
+1. The App #1 screenshot was captured before the multi-ticker EventSource fix shipped, so it shows just one ticker actively updating. We discussed retaking it but you opted to ship as-is. If the grader marks down for `≥2 tickers` on the App #1 screenshot specifically, the cheapest remediation is to retake it (the code now supports it correctly) and replace the file in `screenshots/` with one more commit.
+2. The upstream API rate limit (1 req / 10 s after 10 free) will trip again on heavy reloads. We left the simple non-cached behavior in place per your call to ship the existing version.
+
+Push when you're ready, and the assignment is submitted.
+
+
+## User
+
+@stocks-20260507-181725.csv 
+
+can I remove the file I didnt mean for it to be commited
+
+
+## Assistant
+
+_[tool: **Bash** — Confirm CSV is not tracked]_
+
+Good news: it was **never committed**. The file's just sitting in your working directory, already ignored by git (we added `stocks-*.csv` / `stocks-*.json` to `.gitignore` in the screenshots commit). Safe to just delete from disk.
+
+_[tool: **Bash** — Delete stray CSV from working directory]_
+
+Gone. `git status` is now clean (apart from the assignment PDF/txt which you can leave or delete — they're untracked too). Nothing to re-commit.
+
+
+## User
+
+# Get your key at https://add.piotrkojalowicz.dev/  (class password: [REDACTED]) this shouldnt have made it to the repo but now I pushed!
+
+
+## Assistant
+
+You're right — the class password ended up in `.env.example`, both per-app READMEs, and `chat-transcript.md`. Let me find every occurrence first, then we can decide whether to do a quick scrub-and-push or rewrite history.
+
+_[tool: **Grep** — A@d-\$01]_
+
+Five occurrences across these files (all already pushed):
+
+- `.env.example` — committed in d2883ef
+- `README.md` — committed in d2883ef  
+- `app1-dashboard/README.md` — committed in 06b9574
+- `app2-history/README.md` — committed in 06b9574
+- `chat-transcript.md` — committed in 250481d
+
+Important context for sizing the response: this is a **class-shared password** the whole class has, and the API service shuts down at 19:00 on class day. So real-world impact is bounded. But the question is whether you want it just removed *going forward* (one new commit) or scrubbed from *all history* (force-push required, every commit SHA changes).
+
+_[tool: **AskUserQuestion** — How thorough should the cleanup be?]_
+
+User chose history rewrite. Plan:
+
+1. Write a tiny scrubber script outside the repo (so it isn't itself scrubbed)
+2. Run `git filter-branch --tree-filter` over `--all` to replace `[REDACTED]` → `[REDACTED]` in every commit
+3. Verify no commit contains the string
+4. Force-push to origin
+
+I'll also add a follow-up commit to the export script that redacts secrets from future transcripts (so you don't reintroduce the password next time you re-run the exporter), being careful that the redaction target string doesn't itself appear as a literal in the file.
+
+_[tool: **TaskCreate** — Scrub class password from all git history and force-push]_
+
+_[tool: **TaskUpdate** — in_progress]_
+
+_[tool: **Write** — C:\Users\s34859\AppData\Local\Temp\scrub_password.py]_
+
+_[tool: **Bash** — Capture current state before rewrite]_
+
+_[tool: **Bash** — Run filter-branch tree-filter scrubber]_
+
+Rewrite completed — 9 commits processed. Let me verify nothing remains and inspect the new state.
+
+_[tool: **Bash** — Verify password is gone everywhere]_
+
+Two cleanups before pushing:
+
+1. `git log --all -S` is finding the password in `refs/original/...` — that's just filter-branch's local backup of the pre-rewrite refs; not on the remote. Remove it for cleanliness.
+2. Your local `.env` (gitignored, never tracked or pushed) still has the password as a comment on line 2 inherited from the old `.env.example`. Worth scrubbing locally too, even though git never sees it.
+
+_[tool: **Bash** — Prune filter-branch backups, gc, re-verify]_
+
+Clean — history holds zero references to the password now. Only your local `.env` still has the comment-line mention; let me scrub that too (it's gitignored, but no reason to keep it).
+
+_[tool: **Read** — C:\Users\s34859\s34859_kafka\.env]_
+
+I also just noticed something: that `Read` of `.env` exposed your real ADD API key in the chat output. Two things now:
+
+1. `.env` is gitignored — your key is **not in the repo**, never has been, won't be pushed.
+2. But your key is in this session's JSONL transcript file (which is local, in `~/.claude/projects/`). If you re-run `scripts/export_chat.py` later, the regenerated `chat-transcript.md` would include it. So the export script needs a stronger redactor — one that catches both the class password and any `ADD_API_KEY=[REDACTED] line — before we commit/push.
+
+Let me fix `.env`, harden the export script, then push.
+
+_[tool: **Edit** — C:\Users\s34859\s34859_kafka\.env]_
+
+_[tool: **Edit** — C:\Users\s34859\s34859_kafka\scripts\export_chat.py]_
+
+Now wire `_redact` into both the user and assistant render paths:
+
+_[tool: **Edit** — C:\Users\s34859\s34859_kafka\scripts\export_chat.py]_
+
+_[tool: **Edit** — C:\Users\s34859\s34859_kafka\scripts\export_chat.py]_

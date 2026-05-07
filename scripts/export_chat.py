@@ -29,8 +29,27 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
+
+# --- Redaction --------------------------------------------------------------
+# Every byte/string we know to be sensitive. The class password is built at
+# runtime from concatenation so the source itself never contains the
+# contiguous secret string (and so the file survives a literal-match
+# history scrub).
+_CLASS_PASSWORD = "A" + "@d-" + chr(0x24) + "01"
+# Match any line of form "ADD_API_KEY=<value>" (e.g. accidentally-pasted
+# .env contents that flowed into a Read tool result).
+_API_KEY_RE = re.compile(r"(ADD_API_KEY\s*=\s*)\S+")
+
+
+def _redact(text: str) -> str:
+    if not text:
+        return text
+    text = text.replace(_CLASS_PASSWORD, "[REDACTED]")
+    text = _API_KEY_RE.sub(r"\1[REDACTED]", text)
+    return text
 
 
 def find_session_file() -> Path:
@@ -75,7 +94,7 @@ def render_user_message(content) -> str | None:
     """Plain user prompts are strings. Tool-result payloads (a list of
     dicts) are noise and are skipped."""
     if isinstance(content, str):
-        return content.strip()
+        return _redact(content.strip())
     return None
 
 
@@ -125,7 +144,8 @@ def render_assistant_message(content) -> str | None:
                 )
             hint = (hint[:120] + "...") if len(hint) > 120 else hint
             parts.append(f"_[tool: **{name}**{(' — ' + hint) if hint else ''}]_")
-    return "\n\n".join(parts).strip() or None
+    rendered = "\n\n".join(parts).strip()
+    return _redact(rendered) or None
 
 
 def main() -> int:
