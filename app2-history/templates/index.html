@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stock History Viewer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>Stock History Viewer</h1>
+    <p class="subtitle">
+      Polls <code>/api/latest</code> every 10 s and accumulates ticks for the
+      selected window. Upstream retains data for ~10 minutes only.
+    </p>
+    <p id="status" class="status idle">idle</p>
+  </header>
+
+  <section id="picker">
+    <h2>Select tickers</h2>
+    <div id="ticker-list">Loading tickers&hellip;</div>
+    <div class="picker-actions">
+      <button id="select-all"  type="button">Select all</button>
+      <button id="select-none" type="button">Clear</button>
+
+      <label class="range-label">
+        Window (minutes):
+        <select id="minutes">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+        </select>
+      </label>
+
+      <button id="start" type="button" class="primary" disabled>Start polling</button>
+      <button id="stop"  type="button" disabled>Stop</button>
+
+      <span class="spacer"></span>
+
+      <button id="dl-csv"  type="button" disabled>Download CSV</button>
+      <button id="dl-json" type="button" disabled>Download JSON</button>
+    </div>
+  </section>
+
+  <section id="chart-section">
+    <h2>Price chart</h2>
+    <canvas id="chart" width="900" height="320"></canvas>
+  </section>
+
+  <section id="table-section">
+    <h2>Ticks (newest first)</h2>
+    <div class="table-wrap">
+      <table id="ticks-table">
+        <thead>
+          <tr><th>#</th><th>Ticker</th><th>Price</th><th>Currency</th><th>Volume</th><th>Timestamp</th><th>Seq</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
