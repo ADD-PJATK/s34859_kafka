@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Realtime Stock Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>Realtime Stock Dashboard</h1>
+    <p class="subtitle">Live SSE stream from <code>add.piotrkojalowicz.dev</code></p>
+    <p id="status" class="status idle">idle</p>
+  </header>
+
+  <section id="picker">
+    <h2>Select tickers</h2>
+    <div id="ticker-list">Loading tickers&hellip;</div>
+    <div class="picker-actions">
+      <button id="select-all" type="button">Select all</button>
+      <button id="select-none" type="button">Clear</button>
+      <button id="connect" type="button" class="primary" disabled>Connect</button>
+      <button id="disconnect" type="button" disabled>Disconnect</button>
+    </div>
+  </section>
+
+  <section id="cards">
+    <h2>Latest prices</h2>
+    <div id="card-grid"></div>
+  </section>
+
+  <section id="chart-section">
+    <h2>Price history (last 30 ticks per ticker)</h2>
+    <canvas id="chart" width="900" height="360"></canvas>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
