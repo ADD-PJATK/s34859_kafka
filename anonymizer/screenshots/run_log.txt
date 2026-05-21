@@ -1,0 +1,108 @@
+=== anonymize.py verification run on Thu May 14 18:05:56 CEDT 2026 ===
+
+--- python --version ---
+Python 3.13.5
+
+--- CSV/MD/JSON/TXT run: csv ---
+>>> python anonymize.py --mapping examples/mapping.json --input examples/sample.csv --output examples/out/sample.anon.csv --verbose
+INFO anonymize: loaded 3 rule(s), case_sensitive=False
+INFO anonymize: read 107 character(s) from examples\sample.csv
+INFO anonymize: rule[0] find='Anna Nowak' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[0] find='A. Nowak' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[0] find='NOWAK, Anna' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[1] find='anna@firma.test' replace='EMAIL_A' -> 1 replacement(s)
+INFO anonymize: rule[1] find='contact@firma.test' replace='EMAIL_A' -> 1 replacement(s)
+INFO anonymize: rule[2] find='+48 500 100 200' replace='PHONE_A' -> 1 replacement(s)
+INFO anonymize: rule[2] find='500-100-200' replace='PHONE_A' -> 1 replacement(s)
+wrote 74 character(s), 6 replacement(s) -> examples\out\sample.anon.csv
+
+--- result: examples/out/sample.anon.csv ---
+id,name,email,phone
+1,PERSON_A,EMAIL_A,PHONE_A
+2,PERSON_A,EMAIL_A,PHONE_A
+
+--- CSV/MD/JSON/TXT run: md ---
+>>> python anonymize.py --mapping examples/mapping.json --input examples/sample.md --output examples/out/sample.anon.md --verbose
+INFO anonymize: loaded 3 rule(s), case_sensitive=False
+INFO anonymize: read 101 character(s) from examples\sample.md
+INFO anonymize: rule[0] find='Anna Nowak' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[0] find='A. Nowak' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[0] find='NOWAK, Anna' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[1] find='anna@firma.test' replace='EMAIL_A' -> 1 replacement(s)
+INFO anonymize: rule[1] find='contact@firma.test' replace='EMAIL_A' -> 0 replacement(s)
+INFO anonymize: rule[2] find='+48 500 100 200' replace='PHONE_A' -> 1 replacement(s)
+INFO anonymize: rule[2] find='500-100-200' replace='PHONE_A' -> 0 replacement(s)
+wrote 83 character(s), 3 replacement(s) -> examples\out\sample.anon.md
+
+--- result: examples/out/sample.anon.md ---
+# Weekly note
+
+Contact **PERSON_A** for access.
+
+- Email: EMAIL_A
+- Phone: PHONE_A
+
+--- CSV/MD/JSON/TXT run: json ---
+>>> python anonymize.py --mapping examples/mapping.json --input examples/sample.json --output examples/out/sample.anon.json --verbose
+INFO anonymize: loaded 3 rule(s), case_sensitive=False
+INFO anonymize: read 123 character(s) from examples\sample.json
+INFO anonymize: rule[0] find='Anna Nowak' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[0] find='A. Nowak' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[0] find='NOWAK, Anna' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[1] find='anna@firma.test' replace='EMAIL_A' -> 1 replacement(s)
+INFO anonymize: rule[1] find='contact@firma.test' replace='EMAIL_A' -> 0 replacement(s)
+INFO anonymize: rule[2] find='+48 500 100 200' replace='PHONE_A' -> 1 replacement(s)
+INFO anonymize: rule[2] find='500-100-200' replace='PHONE_A' -> 0 replacement(s)
+wrote 105 character(s), 3 replacement(s) -> examples\out\sample.anon.json
+
+--- result: examples/out/sample.anon.json ---
+{
+  "project": "Demo",
+  "owner": "PERSON_A",
+  "contact": "EMAIL_A",
+  "meta": { "phone": "PHONE_A" }
+}
+
+--- CSV/MD/JSON/TXT run: txt ---
+>>> python anonymize.py --mapping examples/mapping.json --input examples/sample.txt --output examples/out/sample.anon.txt --verbose
+INFO anonymize: loaded 3 rule(s), case_sensitive=False
+INFO anonymize: read 112 character(s) from examples\sample.txt
+INFO anonymize: rule[0] find='Anna Nowak' replace='PERSON_A' -> 0 replacement(s)
+INFO anonymize: rule[0] find='A. Nowak' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[0] find='NOWAK, Anna' replace='PERSON_A' -> 1 replacement(s)
+INFO anonymize: rule[1] find='anna@firma.test' replace='EMAIL_A' -> 0 replacement(s)
+INFO anonymize: rule[1] find='contact@firma.test' replace='EMAIL_A' -> 1 replacement(s)
+INFO anonymize: rule[2] find='+48 500 100 200' replace='PHONE_A' -> 0 replacement(s)
+INFO anonymize: rule[2] find='500-100-200' replace='PHONE_A' -> 1 replacement(s)
+wrote 94 character(s), 4 replacement(s) -> examples\out\sample.anon.txt
+
+--- result: examples/out/sample.anon.txt ---
+Line 1: Owner PERSON_A
+Line 2: Also: PERSON_A
+Line 3: Email EMAIL_A
+Line 4: Alt phone PHONE_A
+
+--- dry-run on sample.txt ---
+>>> python anonymize.py --mapping examples/mapping.json --input examples/sample.txt --dry-run
+DRY RUN -- no output file written (would have written to <unset>).
+rule #0 -> 'PERSON_A': 2 replacement(s)
+    'Anna Nowak': 0
+    'A. Nowak': 1
+    'NOWAK, Anna': 1
+rule #1 -> 'EMAIL_A': 1 replacement(s)
+    'anna@firma.test': 0
+    'contact@firma.test': 1
+rule #2 -> 'PHONE_A': 1 replacement(s)
+    '+48 500 100 200': 0
+    '500-100-200': 1
+total: 4 replacement(s)
+
+--- invalid mapping (empty find) ---
+>>> python anonymize.py --mapping /tmp/bad.json --input examples/sample.csv --output /tmp/x.csv
+error: Mapping rule #0: 'find' must be a non-empty array of non-empty strings
+exit=3
+
+--- bad UTF-8 input ---
+>>> python anonymize.py --mapping examples/mapping.json --input /tmp/badutf.txt --output /tmp/x.txt
+error: Input file is not valid UTF-8 at byte offset 0: C:\Users\s34859\AppData\Local\Temp\badutf.txt (invalid start byte)
+exit=4
