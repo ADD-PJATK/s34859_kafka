@@ -1,0 +1,19 @@
+{
+  "replacements": [
+    {
+      "find": ["Anna Nowak", "A. Nowak", "NOWAK, Anna"],
+      "replace": "PERSON_A"
+    },
+    {
+      "find": ["anna@firma.test", "contact@firma.test"],
+      "replace": "EMAIL_A"
+    },
+    {
+      "find": ["+48 500 100 200", "500-100-200"],
+      "replace": "PHONE_A"
+    }
+  ],
+  "options": {
+    "case_sensitive": false
+  }
+}

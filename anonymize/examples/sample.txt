@@ -1,0 +1,4 @@
+Line 1: Owner A. Nowak
+Line 2: Also: NOWAK, Anna
+Line 3: Email contact@firma.test
+Line 4: Alt phone 500-100-200
