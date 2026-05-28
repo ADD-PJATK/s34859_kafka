@@ -25,3 +25,9 @@ Thumbs.db
 # Downloaded data files from App #2 (kept out of the repo)
 stocks-*.csv
 stocks-*.json
+
+# Phase A private cheat sheet (not graded, not for the prompt)
+.intentional-bugs.private.md
+
+# AA4 integration outputs
+integration/out/

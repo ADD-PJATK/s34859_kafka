@@ -1,0 +1,68 @@
+{
+  "ticks": [
+    {
+      "ticker": "ACME",
+      "price": 142.55,
+      "ts": "2026-05-28T09:00:00Z",
+      "trader_email": "anna.kowalska@brokerage.test",
+      "operator_name": "Anna Kowalska",
+      "comment": "Opening allocation for desk EU-1, contact anna.kowalska@brokerage.test"
+    },
+    {
+      "ticker": "ACME",
+      "price": 143.10,
+      "ts": "2026-05-28T09:00:01Z",
+      "trader_email": "marek.nowak@brokerage.test",
+      "operator_name": "Marek Nowak",
+      "comment": "Fill at 143.10 confirmed by Marek Nowak"
+    },
+    {
+      "ticker": "GLOBEX",
+      "price": 88.20,
+      "ts": "2026-05-28T09:00:00Z",
+      "trader_email": "anna.kowalska@brokerage.test",
+      "operator_name": "Anna Kowalska",
+      "comment": "Globex hedge, see anna.kowalska@brokerage.test note"
+    },
+    {
+      "ticker": "GLOBEX",
+      "price": 87.95,
+      "ts": "2026-05-28T09:00:02Z",
+      "trader_email": "olek.zielinski@brokerage.test",
+      "operator_name": "Olek Zielinski",
+      "comment": "Globex partial unwind, Olek Zielinski monitoring"
+    },
+    {
+      "ticker": "INITECH",
+      "price": 41.75,
+      "ts": "2026-05-28T09:00:00Z",
+      "trader_email": "marek.nowak@brokerage.test",
+      "operator_name": "Marek Nowak",
+      "comment": "Initech VWAP order, escalate to Marek Nowak if slippage > 5bp"
+    },
+    {
+      "ticker": "INITECH",
+      "price": 41.80,
+      "ts": "2026-05-28T09:00:03Z",
+      "trader_email": "olek.zielinski@brokerage.test",
+      "operator_name": "Olek Zielinski",
+      "comment": "Initech tick, Olek Zielinski watching"
+    },
+    {
+      "ticker": "UMBRELLA",
+      "price": 215.40,
+      "ts": "2026-05-28T09:00:00Z",
+      "trader_email": "anna.kowalska@brokerage.test",
+      "operator_name": "Anna Kowalska",
+      "comment": "Umbrella long, Anna Kowalska desk"
+    },
+    {
+      "ticker": "STARK",
+      "price": 305.10,
+      "ts": "2026-05-28T09:00:00Z",
+      "trader_email": "olek.zielinski@brokerage.test",
+      "operator_name": "Olek Zielinski",
+      "comment": "Stark momentum, Olek Zielinski"
+    }
+  ]
+}

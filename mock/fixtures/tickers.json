@@ -1,0 +1,9 @@
+{
+  "tickers": [
+    {"symbol": "ACME", "name": "ACME Corporation"},
+    {"symbol": "GLOBEX", "name": "Globex Industries"},
+    {"symbol": "INITECH", "name": "Initech Holdings"},
+    {"symbol": "UMBRELLA", "name": "Umbrella Co."},
+    {"symbol": "STARK", "name": "Stark Enterprises"}
+  ]
+}

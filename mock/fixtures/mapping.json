@@ -1,0 +1,28 @@
+{
+  "replacements": [
+    {
+      "find": [
+        "Anna Kowalska",
+        "anna.kowalska@brokerage.test"
+      ],
+      "replace": "PERSON_A"
+    },
+    {
+      "find": [
+        "Marek Nowak",
+        "marek.nowak@brokerage.test"
+      ],
+      "replace": "PERSON_B"
+    },
+    {
+      "find": [
+        "Olek Zielinski",
+        "olek.zielinski@brokrage.test"
+      ],
+      "replace": "PERSON_C"
+    }
+  ],
+  "options": {
+    "case_sensitive": false
+  }
+}
