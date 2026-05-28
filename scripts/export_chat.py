@@ -27,6 +27,7 @@ is skipped.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
@@ -149,10 +150,25 @@ def render_assistant_message(content) -> str | None:
 
 
 def main() -> int:
-    session = find_session_file()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "chat-transcript.md",
+        help="Output Markdown path (default: <repo>/chat-transcript.md)",
+    )
+    parser.add_argument(
+        "--session",
+        type=Path,
+        default=None,
+        help="Specific .jsonl session file to render (default: newest for this repo)",
+    )
+    args = parser.parse_args()
+
+    session = args.session if args.session else find_session_file()
     print(f"Reading session: {session}", file=sys.stderr)
 
-    out_path = Path(__file__).resolve().parent.parent / "chat-transcript.md"
+    out_path = args.out
     out_lines: list[str] = []
     out_lines.append(f"# Claude Code session — `{session.name}`\n")
     out_lines.append(
